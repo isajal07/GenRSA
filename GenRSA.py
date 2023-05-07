@@ -1,92 +1,12 @@
-# import random
-# from math import gcd
-
-# # Generate uniform n-bit primes p, q
-
-
-# def generate_primes(n):
-#     while True:
-#         p = random.randint(2**(n-1), 2**n-1)
-#         if is_prime(p):
-#             break
-#     while True:
-#         q = random.randint(2**(n-1), 2**n-1)
-#         if is_prime(q):
-#             break
-#     return p, q
-
-# # Check if a number is prime
-
-
-# def is_prime(n):
-#     if n < 2:
-#         return False
-#     for i in range(2, int(n**(0.5))+1):
-#         if n % i == 0:
-#             return False
-#     return True
-
-# # Compute gcd(a, b)
-
-
-# def extended_gcd(a, b):
-#     if a == 0:
-#         return b, 0, 1
-#     gcd_, x1, y1 = extended_gcd(b % a, a)
-#     x = y1 - (b // a) * x1
-#     y = x1
-#     return gcd_, x, y
-
-# # Generate RSA parameters
-
-
-# def gen_rsa(n):
-#     p, q = generate_primes(n)
-#     N = p * q
-#     phi_N = (p-1) * (q-1)
-#     e = 3 if gcd(3, phi_N) == 1 else 216+1
-#     gcd_, d, _ = extended_gcd(e, phi_N)
-#     d = d % phi_N
-#     return N, e, d
-
-# # Encrypt plaintext message using public key (N, e)
-
-
-# def encrypt(N, e, plaintext):
-#     plaintext_bytes = plaintext.encode()
-#     plaintext_int = int.from_bytes(plaintext_bytes, 'big')
-#     ciphertext_int = pow(plaintext_int, e, N)
-#     ciphertext_bytes = ciphertext_int.to_bytes(
-#         (ciphertext_int.bit_length()+7)//8, 'big')
-#     return ciphertext_bytes
-
-# # Decrypt ciphertext message using private key d
-
-
-# def decrypt(N, d, ciphertext):
-#     ciphertext_int = int.from_bytes(ciphertext, 'big')
-#     plaintext_int = pow(ciphertext_int, d, N)
-#     plaintext_bytes = plaintext_int.to_bytes(
-#         (plaintext_int.bit_length()+7)//8, 'big')
-#     plaintext = plaintext_bytes.decode()
-#     return plaintext
-
 import random
-from math import gcd
 
-# Generate uniform n-bit primes p, q
+# Compute the greatest common divisor of two numbers using Euclid's algorithm
 
 
-def generate_primes(n):
-    while True:
-        p = random.randint(2**(n-1), 2**n-1)
-        if is_prime(p):
-            break
-    while True:
-        q = random.randint(2**(n-1), 2**n-1)
-        if is_prime(q):
-            break
-    return p, q
+def gcd(a, b):
+    while b != 0:
+        a, b = b, a % b
+    return a
 
 # Check if a number is prime
 
@@ -94,108 +14,68 @@ def generate_primes(n):
 def is_prime(n):
     if n < 2:
         return False
-    for i in range(2, int(n**(0.5))+1):
+    for i in range(2, int(n**0.5) + 1):
         if n % i == 0:
             return False
     return True
 
-# Compute gcd(a, b)
+# Generate a random prime number of the given bit size
 
 
-def extended_gcd(a, b):
-    if a == 0:
-        return b, 0, 1
-    _gcd, x1, y1 = extended_gcd(b % a, a)
-    x = y1 - (b // a) * x1
-    y = x1
-    return _gcd, x, y
+def generate_prime(bits):
+    while True:
+        p = random.getrandbits(bits)
+        if is_prime(p):
+            return p
 
-# Generate RSA parameters
+# Generate RSA key pairs of the given bit size
 
 
-def gen_rsa(n):
-    p, q = generate_primes(n)
-    N = p * q
-    phi_N = (p-1) * (q-1)
-    e = 3 if gcd(3, phi_N) == 1 else 216+1
-    _gcd, d, _ = extended_gcd(e, phi_N)
-    d = d % phi_N
-    return N, e, d
+def generate_keys(key_size):
+    # Generate two large prime numbers
+    p = generate_prime(key_size // 2)
+    q = generate_prime(key_size // 2)
 
-# Encrypt plaintext message using public key (N, e)
+    # Calculate n and phi(n)
+    n = p * q
+    phi = (p - 1) * (q - 1)
+
+    # Find a number e such that gcd(e, phi(n)) == 1
+    while True:
+        e = random.randrange(2, phi)
+        if gcd(e, phi) == 1:
+            break
+
+    # Calculate the modular inverse of e
+    d = pow(e, -1, phi)
+
+    return (n, e), (n, d)
+
+# Encrypt a plaintext string using RSA
 
 
-def encrypt(N, e, plaintext):
-    plaintext_bytes = plaintext.encode()
-    plaintext_int = int.from_bytes(plaintext_bytes, 'big')
-    ciphertext_int = pow(plaintext_int, e, N)
-    ciphertext_bytes = ciphertext_int.to_bytes(
-        (ciphertext_int.bit_length()+7)//8, 'big')
-    return ciphertext_bytes
+def encrypt(plaintext, public_key):
+    n, e = public_key
+    ciphertext = [pow(ord(c), e, n) for c in plaintext]
+    return ciphertext
 
-# Decrypt ciphertext message using private key d
+# Decrypt a ciphertext list using RSA
 
 
-def decrypt(N, d, ciphertext):
-    ciphertext_int = int.from_bytes(ciphertext, 'big')
-    plaintext_int = pow(ciphertext_int, d, N)
-    plaintext_bytes = plaintext_int.to_bytes(
-        (plaintext_int.bit_length()+7)//8, 'big')
-    # print('>>>>>', plaintext_bytes)
-    plaintext = plaintext_bytes.decode('iso-8859-1')
+def decrypt(ciphertext, private_key):
+    n, d = private_key
+    plaintext = ''.join([chr(pow(c, d, n)) for c in ciphertext])
     return plaintext
 
 
-# Example usage
-if __name__ == '__main__':
-    # Generate RSA parameters
-    N, e, d = gen_rsa(16)
-    print(f'N = {N}, e = {e}, d = {d}')
+# Example usage:
+public_key, private_key = generate_keys(100)
+print("Public key:", public_key)
+print("Private key:", private_key)
 
-    # Encrypt plaintext
-    plaintext = 'Hello, world!'
-    ciphertext = encrypt(N, e, plaintext)
-    print(f'Ciphertext: {ciphertext.hex()}')
+plaintext = "Sajal Shrestha"
+ciphertext = encrypt(plaintext, public_key)
+print("Ciphertext:", ciphertext)
 
-    # Decrypt ciphertext
-    decrypted_plaintext = decrypt(N, d, ciphertext)
-    print(f'Decrypted plaintext: {decrypted_plaintext}')
-
-
-def test():
-    N, e, d = gen_rsa(14)
-    print(f'N: {N}\ne: {e}\nd: {d}')
-
-    ciphertext = encrypt(N, e, "Sajal Shrestha")
-    print(f'Ciphertext: {ciphertext}')
-
-    plaintext = decrypt(N, d, ciphertext)
-    print('plaintext-> ', plaintext)
-
-
-test()
-
-
-# # Define byte string
-# byte_string = b'*\t6\x8f'
-
-# # Decode byte string to plain text
-# plain_text = byte_string.hex()
-
-# # Print decoded plain text
-# print(plain_text)
-
-# from Crypto.PublicKey import RSA
-# from Crypto.Cipher import PKCS1_OAEP
-# import binascii
-
-# keyPair = RSA.generate(3072)
-
-# pubKey = keyPair.publickey()
-# print(f"Public key:  (n={hex(pubKey.n)}, e={hex(pubKey.e)})")
-# pubKeyPEM = pubKey.exportKey()
-# print(pubKeyPEM.decode('ascii'))
-
-# print(f"Private key: (n={hex(pubKey.n)}, d={hex(keyPair.d)})")
-# privKeyPEM = keyPair.exportKey()
-# print(privKeyPEM.decode('ascii'))
+decrypted_plaintext = decrypt(ciphertext, private_key)
+print("Decrypted plaintext:", decrypted_plaintext)
